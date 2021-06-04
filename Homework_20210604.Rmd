@@ -1,0 +1,307 @@
+---
+title: "The Inequality and Quality of Education"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+    runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(dplyr)
+library(plotly)
+library(ggplot2)
+computeStu = function(...) return(3435)
+computeSecS = function(...) return(19)
+computePriS = function(...) return(148)
+```
+
+
+
+```{r data}
+data<-read.csv("D:/MED/DAT VIS/example_data.csv")
+data$SID<-as.character(data$SID)
+data$PID<-as.character(data$PID)
+names(data)[2] <- "Achievement_M3"
+names(data)[3] <- "Achievement_P6"
+names(data)[5] <- "Gender"
+names(data)[7] <- "SecondarySchool_ID"
+names(data)[8] <- "PrimarySchool_ID"
+Categorical.Variables = c("Gender", "SecondarySchool_ID", "PrimarySchool_ID")
+
+Numerical.Variables = c("Achievement_M3", "Achievement_P6", "SOC")
+```
+
+Sidebar {.sidebar data-width=200}
+=======================================================================
+
+```{r}
+selectInput("categorical_variable", label = "Select Categorical Variable:", choices = Categorical.Variables)
+
+selectInput("numerical_variable", label = "Select Numerical Variable:", choices = Numerical.Variables)
+
+```
+
+
+Information {data-icon="fa-info-circle"}
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Total Students
+
+```{r}
+students = computeStu()
+valueBox(students, icon = "fa-users", color = "red")
+```
+
+### Total Secondary Schools
+
+```{r}
+secschool = computeSecS()
+valueBox(secschool, icon = "fa-university", color = "orange")
+```
+
+
+### Total Primary Schools
+
+```{r}
+prischool = computePriS()
+valueBox(prischool, icon = "fa-university", color = "green")
+```
+
+
+Row
+--------------------------
+### **Box plot** shows the relationship between categorical and numerical variables {data-width=700}
+
+```{r}
+renderPlotly({
+  plot_ly(data,
+              x = ~data[[input$numerical_variable]],
+              color = ~data[[input$categorical_variable]],
+              colors = "Paired",
+              type = "box") %>%
+  layout(title = "",
+         xaxis = list(title = "" ,
+                      zeroline = FALSE))
+})
+
+```
+
+
+### **Bar chart** shows the distribution of categorical variable {data-width=500}
+
+```{r}
+renderPlotly({
+  data %>%
+    count(var = data[[input$categorical_variable]], name = "count") %>%
+    plot_ly( x = ~var, y = ~ count, type = "bar", marker = list(color = '#008ae6',line = list(color = '#008ae6', width = 2)), hoverinfo = "x+y") %>%
+    add_text(text = ~paste0( " (",   scales::percent(count/sum(count)),")"), 
+           textposition = "bottom", 
+           textfont = list(size = 8, color = "white"), 
+           showlegend = FALSE) %>%
+    layout(xaxis = list(title = ""), yaxis = list(title = ""))
+    
+})
+```
+
+
+### **Histogram** shows the distribution of numerical variable {data-width=500} 
+
+```{r}
+renderPlotly({
+  plot_ly(x = data[[input$numerical_variable]], type = "histogram",  marker = list(color = "#008ae6", line = list(color = "darkgray", width = 1)))
+})
+```
+
+
+Quality {data-icon="fa-bar-chart"} 
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Average ACH_M3_Male
+
+```{r}
+M3M<-data%>%group_by(Gender)%>%filter(Gender=="Male")%>%summarise(Achievement_M3=mean(Achievement_M3))
+gauge(5.42, min = 0, max = 10,gaugeSectors(
+  success = c(8,10), warning = c(40,79), danger = c(0,39)
+))
+```
+
+### Average ACH_M3_Female
+
+```{r}
+M3F<-data%>%group_by(Gender)%>%filter(Gender=="Female")%>%summarise(Achievement_M3=mean(Achievement_M3))
+gauge(5.94, min = 0, max = 10,gaugeSectors(
+  success = c(8,10), warning = c(40,79), danger = c(0,39)
+))
+```
+
+### Average ACH_P6_Male
+
+```{r}
+P6M<-data%>%group_by(Gender)%>%filter(Gender=="Male")%>%summarise(Achievement_P6=mean(Achievement_P6))
+gauge(96.5, min = 0, max = 150,gaugeSectors(
+  success = c(41,50), warning = c(21,40), danger = c(0,20)
+))
+```
+
+### Average ACH_P6_Female
+
+```{r}
+P6M<-data%>%group_by(Gender)%>%filter(Gender=="Female")%>%summarise(Achievement_P6=mean(Achievement_P6))
+gauge(99.1, min = 0, max = 150,gaugeSectors(
+  success = c(41,50), warning = c(21,40), danger = c(0,20)
+))
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+### Show the Achievement of M3 {data-width=500}
+```{r}
+renderPlotly({
+  plot_ly(data, 
+        x = ~Achievement_M3, 
+        color = ~data[[input$categorical_variable]], 
+        type = 'histogram')%>% layout(title = "",  
+                      xaxis = list(title = "") )
+})
+```
+
+
+### Show the Achievement of P6 {data-width=500}
+```{r}
+renderPlotly({
+  plot_ly(data, 
+        x = ~Achievement_P6, 
+        color = ~data[[input$categorical_variable]], 
+        type = 'histogram')%>% layout(title = "",  
+                      xaxis = list(title = "") )
+})
+```
+
+
+Inequality {data-icon="fa-bar-chart"}
+=======================================================================
+
+Row 
+-----------------------------------------------------------------------
+
+### Percentage of students with low SOC
+
+```{r}
+lowSOC<-data%>%filter(SOC=="0"|SOC=="1")
+valueBox(70.80, icon = "fa-percent", color = "blue")
+```
+
+### Percentage of students with median SOC
+
+```{r}
+midSOC<-data%>%filter(SOC=="20")
+valueBox(20.55, icon = "fa-percent", color = "darkorchid")
+```
+
+
+### Percentage of students with high SOC
+
+```{r}
+highSOC<-data%>%filter(SOC=="31")
+valueBox(8.65, icon = "fa-percent", color = "magenta")
+```
+
+
+column
+-----------------------------------------------------------------------
+
+
+### Show the Inequality of M3 with low SOC {data-width=500}
+```{r}
+ACH_M3_SOC01<-data%>%group_by(SecondarySchool_ID)%>%filter(SOC=="0"|SOC=="1")%>%summarise(ACH_M3_SOCL=mean(Achievement_M3))
+ACH_M3_SOC20<-data%>%group_by(SecondarySchool_ID)%>%filter(SOC=="20")%>%summarise(ACH_M3_SOCM=mean(Achievement_M3))
+ACH_M3_SOC31<-data%>%group_by(SecondarySchool_ID)%>%filter(SOC=="31")%>%summarise(ACH_M3_SOCH=mean(Achievement_M3))
+#ACH_M3_SOC01
+ggplot(ACH_M3_SOC01, aes(x=SecondarySchool_ID, y=ACH_M3_SOCL, color=SecondarySchool_ID)) + 
+  geom_point(size=6) + 
+  geom_line() +   
+  geom_hline(yintercept = 5.678603)+
+  labs(x = "School No. of Low SOC") +
+  labs(y = "Achievement") +
+  theme(legend.position = "none")
+```
+
+### Show the Inequality of M3 with median SOC {data-width=500}
+```{r}
+#ACH_M3_SOC20
+ggplot(ACH_M3_SOC20, aes(x=SecondarySchool_ID, y=ACH_M3_SOCM, color=SecondarySchool_ID)) + 
+  geom_point(size=6) + 
+  geom_line() +   
+  geom_hline(yintercept = 5.678603)+
+  labs(x = "School No. of Median SOC") +
+  labs(y = "Achievement")+
+  theme(legend.position = "none")
+```
+
+### Show the Inequality of M3 with high SOC {data-width=500}
+```{r}
+#ACH_M3_SOC31
+ggplot(ACH_M3_SOC31, aes(x=SecondarySchool_ID, y=ACH_M3_SOCH, color=SecondarySchool_ID)) + 
+  geom_point(size=6) + 
+  geom_line() +   
+  geom_hline(yintercept = 5.678603)+
+  labs(x = "School No of Hight SOC") +
+  labs(y = "Achievement") +
+  theme(legend.position = "none")
+```
+
+column {data-width=500}
+------------------------------
+### Show the Inequality of P6 with low SOC {data-width=500}
+```{r}
+ACH_P6_SOC01<-data%>%group_by(PrimarySchool_ID)%>%
+  filter(SOC=="0"|SOC=="1")%>%summarise(ACH_P6_SOCL=mean(Achievement_P6))
+ACH_P6_SOC20<-data%>%group_by(PrimarySchool_ID)%>%
+  filter(SOC=="20")%>%summarise(ACH_P6_SOCM=mean(Achievement_P6))
+ACH_P6_SOC31<-data%>%group_by(PrimarySchool_ID)%>%
+  filter(SOC=="31")%>%summarise(ACH_P6_SOCH=mean(Achievement_P6))
+
+#ACH_P6_SOC01
+ggplot(ACH_P6_SOC01, aes(x=PrimarySchool_ID, y=ACH_P6_SOCL, color=PrimarySchool_ID)) + 
+  geom_point(size=6) + 
+  geom_line() +   
+  geom_hline(yintercept = 97.8)+
+  labs(x = "School No. of Low SOC") +
+  labs(y = "Achievement")+
+  theme(legend.position = "none")
+```
+
+### Show the Inequality of P6 with median SOC {data-width=500}
+```{r}
+#ACH_P6_SOC20
+ggplot(ACH_P6_SOC20, aes(x=PrimarySchool_ID, y=ACH_P6_SOCM, color=PrimarySchool_ID)) + 
+  geom_point(size=6) + 
+  geom_line() +   
+  geom_hline(yintercept = 97.8)+
+  labs(x = "School No. of Median SOC") +
+  labs(y = "Achievement")+
+  theme(legend.position = "none")
+```
+
+### Show the Inequality of P6 with high SOC {data-width=500}
+```{r}
+#ACH_P6_SOC31
+ggplot(ACH_P6_SOC31, aes(x=PrimarySchool_ID, y=ACH_P6_SOCH, color=PrimarySchool_ID)) + 
+  geom_point(size=6) + 
+  geom_line() +   
+  geom_hline(yintercept = 97.8)+
+  labs(x = "School No of Hight SOC") +
+  labs(y = "Achievement") +
+  theme(legend.position = "none")
+```
